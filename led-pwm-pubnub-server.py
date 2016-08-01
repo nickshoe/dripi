@@ -13,6 +13,8 @@ SECONDS_IN_ONE_MINUTE = 60
 debug = False
 
 #Model
+gpio_bcm_pin = 25
+
 p = None
 
 autostop_timer = None
@@ -23,56 +25,51 @@ current_speed_percentage = 0
 speed_step_inc_pause = 1
 speed_step_dec_pause = 1
 
-is_started = False
-is_stopped = False
+is_running = False
 is_changing_speed = False
 
 max_exercise_time = SECONDS_IN_ONE_MINUTE
 
 def pump_init():
-    GPIO.setup(26, GPIO.OUT)
+    GPIO.setup(gpio_bcm_pin, GPIO.OUT)
 
-    GPIO.output(26, GPIO.LOW)
+    GPIO.output(gpio_bcm_pin, GPIO.HIGH)
     
     #PWM driver
     #global p
     
-    #p = GPIO.PWM(26, 50)
+    #p = GPIO.PWM(gpio_bcm_pin, 50)
 
 def pump_start():
-    global is_started, is_stopped
+    global is_running
     
-    if (is_started):
+    if (is_running):
         print 'pump is already started'
 
         return
 
-    is_stopped = False
-
     print 'starting water pump...'
 
     #Relay driver
-    GPIO.output(26, GPIO.HIGH)
+    GPIO.output(gpio_bcm_pin, GPIO.LOW)
 
     #PWM driver
     #p.start(0)
 
     #pump_change_speed_linear(max_speed_percentage)
 
-    is_started = True
+    is_running = True
 
 def pump_stop():
-    global is_stopped, is_started
+    global is_running
     
-    if (is_stopped):
+    if (is_running == False):
         print 'pump is already stopped'
 
         return
 
-    is_started = False
-
     #Relay driver
-    GPIO.output(26, GPIO.LOW)
+    GPIO.output(gpio_bcm_pin, GPIO.HIGH)
 
     #PWM driver
     #pump_change_speed_linear(0)
@@ -81,7 +78,7 @@ def pump_stop():
 
     print 'water pump stopped'
 
-    is_stopped = True
+    is_running = False
 
 def pump_change_speed_linear(new_speed_percentage):
     #Relay driver
@@ -90,7 +87,7 @@ def pump_change_speed_linear(new_speed_percentage):
     return
 
     #PWM driver
-    if (is_stopped):
+    if (is_running == False):
         print 'cannot change pump speed because it is stopped'
 
         return
@@ -193,6 +190,18 @@ def stop():
     #TODO: move to model
     autostop_timer_deactivate()
 
+def status():
+    pubnub.publish(
+        channel = 'status',
+        message = {
+            'resource': 'water_pump',
+            'operation': 'status',
+            'params': {
+                'is_running': is_running
+            }
+        }
+    )
+
 def heartbeat():
     pubnub.publish(
        channel = 'status',
@@ -207,7 +216,8 @@ dispatcher = {
     'water_pump': {
         'start': start,
         'set_speed': set_speed,
-        'stop': stop
+        'stop': stop,
+        'status': status
     },
     'heartbeat': {
         'status': heartbeat
