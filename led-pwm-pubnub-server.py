@@ -3,8 +3,8 @@ from pubnub import Pubnub
 import RPi.GPIO as GPIO
 import time
 import sys
-import timer
 import math
+import threading
 
 #Global constants
 SECONDS_IN_ONE_MINUTE = 60
@@ -135,8 +135,8 @@ def autostop_timer_activate():
         pump_stop()
 
     print 'activating autostop timer to fire in ' + str(max_exercise_time) + 's...'
-    timeout = max_exercise_time * int(math.pow(10, 6))
-    autostop_timer = timer.Timer(timeout, callback)
+
+    autostop_timer = threading.Timer(max_exercise_time, callback)
     autostop_timer.start()
 
 def autostop_timer_deactivate():
@@ -147,8 +147,9 @@ def autostop_timer_deactivate():
 
         return
 
-    autostop_timer.stop()
+    autostop_timer.cancel()
     autostop_timer = None
+    
     print 'autostop timer deactivated'
 
 #Controllers

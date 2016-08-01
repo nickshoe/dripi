@@ -1,6 +1,6 @@
 from pubnub import Pubnub
 import time
-import timer
+import threading
 
 debug = False
 
@@ -32,7 +32,7 @@ def heartbeat_read():
 def start_heartbeat_countdown():
     global heartbeat_countdown_timer
     
-    heartbeat_countdown_timer = timer.Timer(5000000, no_heartbeat_callback)
+    heartbeat_countdown_timer = threading.Timer(5.0, no_heartbeat_callback)
     heartbeat_countdown_timer.start()
 
 def no_heartbeat_callback():
@@ -43,19 +43,19 @@ def no_heartbeat_callback():
 def stop_heartbeat_countdown():
     global heartbeat_countdown_timer
 
-    heartbeat_countdown_timer.stop()
+    heartbeat_countdown_timer.cancel()
     heartbeat_countdown_timer = None
 
 def start_heartbeat_watch():    
     global heartbeat_watch_timer
 
-    heartbeat_watch_timer = timer.Timer(7000000, heartbeat_read)
+    heartbeat_watch_timer = threading.Timer(7.0, heartbeat_read)
     heartbeat_watch_timer.start()
 
 def stop_heartbeat_watch():
     global heartbeat_watch_timer
 
-    heartbeat_watch_timer.stop()
+    heartbeat_watch_timer.cancel()
     heartbeat_watch_timer = None
 
 def heartbeat_callback(message, channel):
