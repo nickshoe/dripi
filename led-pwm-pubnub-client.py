@@ -2,6 +2,8 @@ from pubnub import Pubnub
 import time
 import timer
 
+debug = False
+
 pubnub = Pubnub(
     publish_key = 'pub-c-202f92c7-77aa-4abd-a588-edea3cbb4ee5',
     subscribe_key = 'sub-c-d379b9a0-573c-11e6-b1c5-0619f8945a4f'
@@ -14,6 +16,64 @@ def send_message(message):
         message = message
     )
 
+#Heartbeat
+heartbeat_watch_timer = None
+heartbeat_countdown_timer = None
+
+def heartbeat_read():
+    send_message({
+        'resource': 'heartbeat',
+        'operation': 'status',
+        'params': None
+    })
+    
+    start_heartbeat_countdown()
+
+def start_heartbeat_countdown():
+    global heartbeat_countdown_timer
+    
+    heartbeat_countdown_timer = timer.Timer(5000000, no_heartbeat_callback)
+    heartbeat_countdown_timer.start()
+
+def no_heartbeat_callback():
+    print 'server could be down, not received heartbeat within 5s'
+
+    start_heartbeat_watch()
+
+def stop_heartbeat_countdown():
+    global heartbeat_countdown_timer
+
+    heartbeat_countdown_timer.stop()
+    heartbeat_countdown_timer = None
+
+def start_heartbeat_watch():    
+    global heartbeat_watch_timer
+
+    heartbeat_watch_timer = timer.Timer(7000000, heartbeat_read)
+    heartbeat_watch_timer.start()
+
+def stop_heartbeat_watch():
+    global heartbeat_watch_timer
+
+    heartbeat_watch_timer.stop()
+    heartbeat_watch_timer = None
+
+def heartbeat_callback(message, channel):
+    stop_heartbeat_countdown()
+
+    if debug:
+        print 'server is healty, received its heartbeat (' + message['params'] + ')'
+
+    start_heartbeat_watch()
+
+pubnub.subscribe(
+    channels = 'status',
+    callback = heartbeat_callback
+)
+
+heartbeat_read()
+
+#Water Pump Control
 start_message = {
     'resource': 'water_pump',
     'operation': 'start',
@@ -26,35 +86,12 @@ stop_message = {
     'params': None
 }
 
-def start_heartbeat_watch():
-    global heartbeat_watch_timer
-    
-    heartbeat_watch_timer = timer.Timer(15000000, no_heartbeat_callback)
-    heartbeat_watch_timer.start()
-
-def no_heartbeat_callback():
-    print 'server could be down, not received heartbeat in the last 15s'
-
-    start_heartbeat_watch()
-
-def heartbeat_callback(message, channel):
-    print 'server is healty, received its heartbeat (' + message['params'] + ')'
-
-    heartbeat_watch_timer.stop()
-    
-    start_heartbeat_watch()
-
-pubnub.subscribe(
-    channels = 'status',
-    callback = heartbeat_callback
-)
-
-start_heartbeat_watch()
-
+print 'Sending start command to water pump'
 send_message(start_message)
 
 time.sleep(10)
 
+print 'Sending set speed to 100 command to water pump'
 send_message({
     'resource': 'water_pump',
     'operation': 'set_speed',
@@ -63,8 +100,6 @@ send_message({
 
 time.sleep(15)
 
+print 'Sending stop command to water pump'
 send_message(stop_message)
 
-
-while True:
-    time.sleep(5000)

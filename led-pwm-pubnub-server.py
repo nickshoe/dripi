@@ -13,8 +13,6 @@ SECONDS_IN_ONE_MINUTE = 60
 debug = False
 
 #Model
-heartbeat_timer = None
-
 p = None
 
 autostop_timer = None
@@ -175,15 +173,7 @@ def stop():
     #TODO: move to model
     autostop_timer_deactivate()
 
-dispatcher = {
-    'water_pump': {
-        'start': start,
-        'set_speed': set_speed,
-        'stop': stop
-    }
-}
-
-def heartbeat_send():
+def heartbeat():
     pubnub.publish(
        channel = 'status',
        message = {
@@ -193,23 +183,16 @@ def heartbeat_send():
         }
     )
 
-def heartbeat_callback():
-    heartbeat_send()
-
-    schedule_next_heartbeat()
-
-def schedule_next_heartbeat():
-    global heartbeat_timer
-    
-    heartbeat_timer = timer.Timer(7 * int(pow(10, 6)), heartbeat_callback)
-    heartbeat_timer.start()
-
-#TODO: ragionare meglio su questo (è identica a heartbeat_callback)
-def heartbeat_init():
-    heartbeat_send()
-
-    schedule_next_heartbeat()
-
+dispatcher = {
+    'water_pump': {
+        'start': start,
+        'set_speed': set_speed,
+        'stop': stop
+    },
+    'heartbeat': {
+        'status': heartbeat
+    }
+}
                           
 #Routing
 def route(request):
@@ -289,7 +272,6 @@ def main():
     setupGPIO()
 
     #model init
-    heartbeat_init()
     pump_init()
     
     try:
