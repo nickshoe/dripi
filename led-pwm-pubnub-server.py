@@ -30,9 +30,14 @@ is_changing_speed = False
 max_exercise_time = SECONDS_IN_ONE_MINUTE
 
 def pump_init():
-    global p
+    GPIO.setup(26, GPIO.OUT)
+
+    GPIO.output(26, GPIO.LOW)
     
-    p = GPIO.PWM(26, 50)
+    #PWM driver
+    #global p
+    
+    #p = GPIO.PWM(26, 50)
 
 def pump_start():
     global is_started, is_stopped
@@ -46,9 +51,13 @@ def pump_start():
 
     print 'starting water pump...'
 
-    p.start(0)
+    #Relay driver
+    GPIO.output(26, GPIO.HIGH)
 
-    pump_change_speed_linear(max_speed_percentage)
+    #PWM driver
+    #p.start(0)
+
+    #pump_change_speed_linear(max_speed_percentage)
 
     is_started = True
 
@@ -61,16 +70,26 @@ def pump_stop():
         return
 
     is_started = False
-    
-    pump_change_speed_linear(0)
 
-    p.stop()
+    #Relay driver
+    GPIO.output(26, GPIO.LOW)
+
+    #PWM driver
+    #pump_change_speed_linear(0)
+
+    #p.stop()
 
     print 'water pump stopped'
 
     is_stopped = True
 
 def pump_change_speed_linear(new_speed_percentage):
+    #Relay driver
+    print 'water pump driver is not PWM, is on/off'
+
+    return
+
+    #PWM driver
     if (is_stopped):
         print 'cannot change pump speed because it is stopped'
 
@@ -260,10 +279,6 @@ def teardownPubNub():
 #GPIO
 def setupGPIO():
     GPIO.setmode(GPIO.BCM)
-
-    GPIO.setup(26, GPIO.OUT)
-
-    GPIO.output(26, GPIO.LOW)
 
 def teardownGPIO():
     GPIO.cleanup()
