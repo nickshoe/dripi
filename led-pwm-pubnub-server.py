@@ -5,6 +5,7 @@ import time
 import sys
 import math
 import threading
+import datetime
 
 #Global constants
 SECONDS_IN_ONE_MINUTE = 60
@@ -15,9 +16,8 @@ debug = False
 #Model
 gpio_bcm_pin = 25
 
+#PWM driver
 p = None
-
-autostop_timer = None
 
 speed_step_percentage = 10
 max_speed_percentage = 70
@@ -25,10 +25,15 @@ current_speed_percentage = 0
 speed_step_inc_pause = 1
 speed_step_dec_pause = 1
 
+autostop_timer = None
+
 is_running = False
 is_changing_speed = False
 
-max_exercise_time = SECONDS_IN_ONE_MINUTE
+last_started_at = None
+last_stopped_at = None
+
+max_exercise_time = SECONDS_IN_ONE_MINUTE + 15
 
 def pump_init():
     GPIO.setup(gpio_bcm_pin, GPIO.OUT)
@@ -41,7 +46,7 @@ def pump_init():
     #p = GPIO.PWM(gpio_bcm_pin, 50)
 
 def pump_start():
-    global is_running
+    global is_running, last_started_at
     
     if (is_running):
         print 'pump is already started'
@@ -58,10 +63,12 @@ def pump_start():
 
     #pump_change_speed_linear(max_speed_percentage)
 
+    last_started_at = datetime.datetime.utcnow()
+
     is_running = True
 
 def pump_stop():
-    global is_running
+    global is_running, last_stopped_at
     
     if (is_running == False):
         print 'pump is already stopped'
@@ -77,6 +84,8 @@ def pump_stop():
     #p.stop()
 
     print 'water pump stopped'
+
+    last_stopped_at = datetime.datetime.utcnow()
 
     is_running = False
 
@@ -191,13 +200,25 @@ def stop():
     autostop_timer_deactivate()
 
 def status():
+    last_start = None
+    if (last_started_at != None):
+        last_start = last_started_at.isoformat()
+
+    last_stop = None
+    if (last_stopped_at != None):
+        last_stop = last_stopped_at.isoformat()
+
+    
     pubnub.publish(
         channel = 'status',
         message = {
             'resource': 'water_pump',
             'operation': 'status',
             'params': {
-                'is_running': is_running
+                'is_running': is_running,
+                'max_exercise_time': max_exercise_time,
+                'last_started_at': last_start,
+                'last_stopped_at': last_stop
             }
         }
     )
