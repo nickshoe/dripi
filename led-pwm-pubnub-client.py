@@ -88,22 +88,29 @@ stop_message = {
 
 while True:
 
-    print 'Sending start command to water pump'
-    send_message(start_message)
+##    print 'Sending start command to water pump'
+##    send_message(start_message)
+##
+##    time.sleep(5)
+##
+##    print 'Sending set speed to 100 command to water pump'
+##    send_message({
+##        'resource': 'water_pump',
+##        'operation': 'set_speed',
+##        'params': 100
+##    })
+##
+##    time.sleep(5)
+##
+##    print 'Sending stop command to water pump'
+##    send_message(stop_message)
+##
+##    time.sleep(5)
 
-    time.sleep(5)
-
-    print 'Sending set speed to 100 command to water pump'
     send_message({
-        'resource': 'water_pump',
-        'operation': 'set_speed',
-        'params': 100
+        'resource': 'pi',
+        'operation': 'status',
+        'params': None
     })
 
     time.sleep(5)
-
-    print 'Sending stop command to water pump'
-    send_message(stop_message)
-
-    time.sleep(5)
-

@@ -6,6 +6,9 @@ import sys
 import math
 import threading
 import datetime
+import subprocess
+import re
+import os
 
 #Global constants
 SECONDS_IN_ONE_MINUTE = 60
@@ -49,11 +52,11 @@ def pump_start():
     global is_running, last_started_at
     
     if (is_running):
-        print 'pump is already started'
+        print('pump is already started')
 
         return
 
-    print 'starting water pump...'
+    print('starting water pump...')
 
     #Relay driver
     GPIO.output(gpio_bcm_pin, GPIO.LOW)
@@ -71,7 +74,7 @@ def pump_stop():
     global is_running, last_stopped_at
     
     if (is_running == False):
-        print 'pump is already stopped'
+        print('pump is already stopped')
 
         return
 
@@ -83,7 +86,7 @@ def pump_stop():
 
     #p.stop()
 
-    print 'water pump stopped'
+    print('water pump stopped')
 
     last_stopped_at = datetime.datetime.utcnow()
 
@@ -91,25 +94,25 @@ def pump_stop():
 
 def pump_change_speed_linear(new_speed_percentage):
     #Relay driver
-    print 'water pump driver is not PWM, is on/off'
+    print('water pump driver is not PWM, is on/off')
 
     return
 
     #PWM driver
     if (is_running == False):
-        print 'cannot change pump speed because it is stopped'
+        print('cannot change pump speed because it is stopped')
 
         return
     
     if (new_speed_percentage == current_speed_percentage):
-        print 'pump speed is already ' + str(new_speed_percentage) + '%'
+        print('pump speed is already ' + str(new_speed_percentage) + '%')
         
         return
 
     global is_changing_speed
 
     if (is_changing_speed):
-        print 'pump is already changing speed'
+        print('pump is already changing speed')
 
         return
 
@@ -141,7 +144,7 @@ def pump_dec_speed_linear(target_speed_percentage):
 def pump_set_speed(percentage):
     p.ChangeDutyCycle(percentage)
 
-    print 'water pump speed set to ' + str(percentage) + '%'
+    print('water pump speed set to ' + str(percentage) + '%')
     
     global current_speed_percentage
     current_speed_percentage = percentage
@@ -150,16 +153,16 @@ def autostop_timer_activate():
     global autostop_timer
 
     if (autostop_timer != None):
-        print 'autostop timer already activated'
+        print('autostop timer already activated')
 
         return
 
     def callback():
-        print 'automatically stopping water pump...'
+        print('automatically stopping water pump...')
 
         pump_stop()
 
-    print 'activating autostop timer to fire in ' + str(max_exercise_time) + 's...'
+    print('activating autostop timer to fire in ' + str(max_exercise_time) + 's...')
 
     autostop_timer = threading.Timer(max_exercise_time, callback)
     autostop_timer.start()
@@ -168,18 +171,18 @@ def autostop_timer_deactivate():
     global autostop_timer
     
     if (autostop_timer == None):
-        print 'autostop timer already deactivated'
+        print('autostop timer already deactivated')
 
         return
 
     autostop_timer.cancel()
     autostop_timer = None
     
-    print 'autostop timer deactivated'
+    print('autostop timer deactivated')
 
 #Controllers
 def start():
-    print 'manually starting water pump...'
+    print('manually starting water pump...')
 
     #TODO: move to model
     autostop_timer_activate()    
@@ -187,12 +190,12 @@ def start():
     pump_start()
 
 def set_speed(percentage):
-    print 'manually changing water pump speed to ' + str(percentage) + '...'
+    print('manually changing water pump speed to ' + str(percentage) + '...')
     
     pump_change_speed_linear(percentage)
 
 def stop():
-    print 'manually stopping water pump...'
+    print('manually stopping water pump...')
     
     pump_stop()
 
@@ -207,7 +210,6 @@ def status():
     last_stop = None
     if (last_stopped_at != None):
         last_stop = last_stopped_at.isoformat()
-
     
     pubnub.publish(
         channel = 'status',
@@ -222,6 +224,46 @@ def status():
             }
         }
     )
+
+def pi_status():
+    dir_path = os.path.dirname(os.path.realpath(__file__))
+    script_path = dir_path + "/pi-temps.sh"
+    
+    try:
+        bytes_output = subprocess.check_output(script_path)
+
+        string_output = bytes_output.decode("utf-8")
+
+        lines = string_output.splitlines()
+
+        cpu_temp_string = lines[0].strip()
+        gpu_temp_string = lines[1].strip()
+        cpu_freq_string = lines[2].strip()
+
+        cpu_temp_match = re.search('\d+\.\d', cpu_temp_string)
+        gpu_temp_match = re.search('\d+\.\d', gpu_temp_string)
+        cpu_freq_match = re.search('\d+', cpu_freq_string)
+
+        cpu_temp = cpu_temp_match.group()
+        gpu_temp = gpu_temp_match.group()
+        cpu_freq = cpu_freq_match.group()
+
+        pubnub.publish(
+            channel = 'status',
+            message = {
+                'resource': 'pi',
+                'operation': 'status',
+                'params': {
+                    'cpu_temp': cpu_temp,
+                    'gpu_temp': gpu_temp,
+                    'cpu_freq': cpu_freq
+                }
+            }
+        )
+    except FileNotFoundError:
+        print('cannot find "' + script_path + '"')
+    except subprocess.CalledProcessError:
+        print('execution error "' + script_path + '"')
 
 def heartbeat():
     pubnub.publish(
@@ -242,6 +284,9 @@ dispatcher = {
     },
     'heartbeat': {
         'status': heartbeat
+    },
+    'pi': {
+        'status': pi_status
     }
 }
                           
@@ -252,12 +297,12 @@ def route(request):
     params = request['params']
 
     if resource not in dispatcher:
-        print 'Cannot find resource "' + resource + '"'
+        print('Cannot find resource "' + resource + '"')
 
         return
 
     if operation not in dispatcher[resource]:
-        print 'Cannot find operation "' + operation + '" for resource "' + resource + '"'
+        print('Cannot find operation "' + operation + '" for resource "' + resource + '"')
 
         return
     
