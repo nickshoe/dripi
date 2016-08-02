@@ -12,6 +12,7 @@ import os
 
 #Global constants
 SECONDS_IN_ONE_MINUTE = 60
+SECONDS_IN_ONE_HOUR = 60 * SECONDS_IN_ONE_MINUTE
 
 #General settings
 debug = False
@@ -36,7 +37,7 @@ is_changing_speed = False
 last_started_at = None
 last_stopped_at = None
 
-max_exercise_time = SECONDS_IN_ONE_MINUTE + 15
+max_exercise_time = SECONDS_IN_ONE_HOUR
 
 def pump_init():
     GPIO.setup(gpio_bcm_pin, GPIO.OUT)
