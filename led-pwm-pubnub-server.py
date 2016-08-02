@@ -316,9 +316,24 @@ def route(request):
 #Setup PubNub
 pubnub = Pubnub(
     publish_key = 'pub-c-202f92c7-77aa-4abd-a588-edea3cbb4ee5',
-    subscribe_key = 'sub-c-d379b9a0-573c-11e6-b1c5-0619f8945a4f'
+    subscribe_key = 'sub-c-d379b9a0-573c-11e6-b1c5-0619f8945a4f',
+    daemon = True
 )
 channel = 'control'
+
+keep_alive_timer = None
+
+def keep_alive_callback(time):
+    print(time)
+
+def keep_alive():
+    pubnub.time(keep_alive_callback)
+
+    schedule_next_keep_alive()
+
+def schedule_next_keep_alive():
+    keep_alive_timer = threading.Timer(30, keep_alive)
+    keep_alive_timer.start()
 
 def callback(message, channel):
     if (debug):
@@ -328,9 +343,11 @@ def callback(message, channel):
 
 def error(message):
     print("ERROR: " + str(message))
-  
+
 def connect(message):
     print("CONNECTED")
+
+    #keep_alive()
   
 def reconnect(message):
     print("RECONNECTED")
