@@ -5,8 +5,8 @@ import threading
 debug = False
 
 pubnub = Pubnub(
-    publish_key = 'pub-c-202f92c7-77aa-4abd-a588-edea3cbb4ee5',
-    subscribe_key = 'sub-c-d379b9a0-573c-11e6-b1c5-0619f8945a4f'
+    publish_key = '',
+    subscribe_key = ''
 )
 channel = 'control'
 
