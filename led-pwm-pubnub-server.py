@@ -266,6 +266,27 @@ def pi_status():
     except subprocess.CalledProcessError:
         print('execution error "' + script_path + '"')
 
+def pi_shutdown():
+    try:
+        bytes_output = subprocess.check_output(["sudo", "shutdown", "--poweroff"]) 
+
+        string_output = bytes_output.decode("utf-8")
+
+        pubnub.publish(
+            channel = 'status',
+            message = {
+                'resource': 'pi',
+                'operation': 'shutdown',
+                'params': {
+                    'wall_message': string_output
+                }
+            }
+        )
+    except FileNotFoundError:
+        print('cannot find shutdonwn binary')
+    except subprocess.CalledProcessError:
+        print('shutdown execution error')
+
 def heartbeat():
     pubnub.publish(
        channel = 'status',
@@ -287,7 +308,8 @@ dispatcher = {
         'status': heartbeat
     },
     'pi': {
-        'status': pi_status
+        'status': pi_status,
+        'shutdown': pi_shutdown
     }
 }
                           
