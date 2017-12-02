@@ -1,0 +1,13 @@
+#!/bin/bash
+
+ifdown wlan0
+    
+# connect to 3g
+sleep 30
+#/opt/sakis3g/sakis3g --sudo "connect" --console
+sudo /home/pi/Desktop/umtskeeper/umtskeeper --sakisswitches "--sudo --console" --devicename 'Huawei' --log --silent --nat 'no' &>> /home/pi/Desktop/umtskeeper/error.log &
+    
+# launch dripi server
+python3 /home/pi/Desktop/dripi/led-pwm-pubnub-server.py
+
+exit 0
